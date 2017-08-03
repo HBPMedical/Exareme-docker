@@ -76,12 +76,6 @@ RUN apk add --update py-pip ca-certificates gcc musl-dev python-dev py-numpy-dev
     apk del py-pip ca-certificates gcc musl-dev python-dev py-numpy-dev lapack-dev g++ gfortran && \
     rm -rf /tmp/* /var/cache/apk/*
 
-#make sure we get fresh keys
-RUN rm -rf /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_dsa_key
-
-# Make sure a SSH server is running in the container.
-CMD ["/usr/sbin/sshd","-D"]
-
 # Runtime dependencies for Exareme
 RUN apk add --update rsync curl openssh bash jq python py-requests py-numpy lapack py-numpy-f2py && \
     rm -rf /tmp/* /var/cache/apk/*
