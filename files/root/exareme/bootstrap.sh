@@ -39,13 +39,13 @@ else
 
     if [ "$MASTER_FLAG" != "master" ]; then #this is a worker
         sleep 2
-        MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | awk '{print $1;}' | head -n 1)
+        MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
         curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $(hostname)
         while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
             sleep 2
         done
     else #this is the master
-        /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.0' | awk '{print $1;}' | head -n 1 > etc/exareme/master
+        /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > etc/exareme/master
         WORKERS_UP=0
         while [ $WORKERS_UP != $EXA_WORKERS_WAIT ]; do
             sleep 2
