@@ -1,3 +1,4 @@
+apsw
 SciPy
 scikit-learn
 titus
