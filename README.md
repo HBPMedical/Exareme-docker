@@ -23,7 +23,10 @@ This project creates a Docker image for running Exareme. It has been developed o
 
 4. Fix file access rights
   ```
-  chmod 400 files/root/.ssh/id_rsa
+  chmod 755 files/root/.ssh
+  chmod 644 files/root/.ssh/authorized_keys
+  chmod 644 files/root/.ssh/id_rsa.pub
+  chmod 600 files/root/.ssh/id_rsa
   ```
 
 5. Building the Docker image
