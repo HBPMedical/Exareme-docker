@@ -69,7 +69,7 @@ RUN apk add --update curl ca-certificates && \
     rm -rf /tmp/* /var/cache/apk/*
 
 # Some extra python libraries for the mip-algorithms, which needs to be
-# compiled by hand,
+# compiled by hand
 ADD files/requirements.txt /root/requirements.txt
 RUN apk add --update py-pip ca-certificates gcc musl-dev python-dev py-numpy-dev lapack-dev g++ gfortran && \
     pip install -r /root/requirements.txt && \
