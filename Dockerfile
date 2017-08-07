@@ -90,11 +90,14 @@ ADD src/mip-algorithms /root/mip-algorithms
 # Exareme configuration, ssh keys and so on
 # This has to be done after copying in the algorithms and exareme, as some
 # files are placed in folders created by those two steps.
+ADD files/java.sh /etc/profile.d/java.sh
+RUN chmod 755 /etc/profile.d/java.sh
 ADD files/root /root
 
 #Retrieve the correct group of Ips
 WORKDIR /root/exareme/bin
 RUN sed -i "s/'{print \$2}'/'{print \$2}' \| grep '10.20'/" exareme-admin.sh
+RUN sed -i "s/\;\$CMD_RUN/\;source \/etc\/profile\;\$CMD_RUN/" exareme-admin.sh
 
 EXPOSE 9090
 EXPOSE 22
