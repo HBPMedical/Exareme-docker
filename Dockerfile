@@ -71,13 +71,13 @@ RUN apk add --update curl ca-certificates && \
 # Some extra python libraries for the mip-algorithms, which needs to be
 # compiled by hand
 ADD files/requirements.txt /root/requirements.txt
-RUN apk add --update py-pip ca-certificates gcc musl-dev python-dev py-numpy-dev lapack-dev g++ gfortran && \
+RUN apk add --update py-pip ca-certificates gcc musl-dev python-dev lapack-dev g++ gfortran && \
     pip install -r /root/requirements.txt && \
-    apk del py-pip ca-certificates gcc musl-dev python-dev py-numpy-dev lapack-dev g++ gfortran && \
+    apk del py-pip ca-certificates gcc musl-dev python-dev lapack-dev gfortran && \
     rm -rf /tmp/* /var/cache/apk/*
 
 # Runtime dependencies for Exareme
-RUN apk add --update rsync curl openssh bash jq python py-requests py-numpy lapack py-numpy-f2py && \
+RUN apk add --update rsync curl openssh bash jq python py-requests lapack && \
     rm -rf /tmp/* /var/cache/apk/*
 ADD files/service /bin/service
 
