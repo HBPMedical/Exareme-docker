@@ -25,7 +25,7 @@ if [ $MODE = "local" ]; then
 
 echo `(hostname --ip-address)` > /root/exareme/etc/exareme/master
 echo "" > /root/exareme/etc/exareme/workers
-
+echo "" > /root/exareme/etc/exareme/name
 ./bin/exareme-admin.sh --start --local
 
 else
@@ -41,6 +41,7 @@ else
         sleep 2
         MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
         curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $(hostname)
+	    echo $NODE_NAME > /root/exareme/etc/exareme/name
         while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
             sleep 2
         done
@@ -60,6 +61,7 @@ else
             curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw) <<< $i
             curl -X DELETE $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i
         done
+	    echo $NODE_NAME > /root/exareme/etc/exareme/name
         ./bin/exareme-admin.sh --update
         sleep 3
         ./bin/exareme-admin.sh --start
