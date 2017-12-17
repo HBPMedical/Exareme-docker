@@ -4,15 +4,15 @@
   "local_engine_default" : {
     "name"        : "rawdb",
     "parameters"  : [
-{ "name" : "username", "desc" : "", "value":"federation" },
-{ "name" : "password", "desc" : "", "value":"federation" },
-{ "name" : "host", "desc" : "", "value":"raw-ui" },
-{ "name" : "port", "desc" : "", "value":"5555" },
-{ "name" : "api", "desc" : "", "value":"query" },
-{ "name" : "resultsPerPage", "desc" : "", "value":"all" },
-{ "name" : "datakey", "desc" : "", "value":"output" }
+	"<raw_username>"
+      	"<raw_password>"
+      	"<raw_host>"
+      	"<raw_port>"
+      	"<raw_endpoint>"
+      	"<raw_resultsperpage>"
+      	"<raw_datakey>"
     ],
-    "query" : "select distinct patient_id as __rid, variable_name as __colname, value as __val from exam_value"
+    "query" : "select * from mip_federation_features"
   }
 }
 
