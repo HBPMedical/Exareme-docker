@@ -2,7 +2,7 @@
   "algorithms"  : [],
   "endpoints"   : [],
   "local_engine_default" : {
-    "name"        : "rawdb",
+    "name"        : "postgresraw",
     "parameters"  : [
 	"<raw_username>"
       	"<raw_password>"
@@ -11,6 +11,7 @@
       	"<raw_endpoint>"
       	"<raw_resultsperpage>"
       	"<raw_datakey>"
+        "<raw_db>"
     ],
     "query" : "select * from mip_federation_features"
   }
