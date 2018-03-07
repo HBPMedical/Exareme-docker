@@ -22,42 +22,53 @@ sed -i "/<raw_datakey>/c{ \"name\" : \"datakey\", \"desc\" : \"\", \"value\":\"`
 sed -i "/<raw_db>/c{ \"name\" : \"db\", \"desc\" : \"\", \"value\":\"`echo $RAWDB`\" }" /root/mip-algorithms/properties.json
 
 mkdir -p  /tmp/demo/db/
-
-if [ $MODE = "local" ]; then
-
-echo `(hostname --ip-address)` > /root/exareme/etc/exareme/master
-echo "" > /root/exareme/etc/exareme/workers
-echo "" > /root/exareme/etc/exareme/name
-./bin/exareme-admin.sh --start --local
-
-else
-
-    if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
+if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
 
     EXAREME_WORKERS_PATH="available_workers"
     EXAREME_ACTIVE_WORKERS_PATH="active_workers"
+    EXAREME_MASTER_PATH="master"
 
     service ssh restart
 
     if [ "$MASTER_FLAG" != "master" ]; then #this is a worker
-        sleep 2
-        MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
-        curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $(hostname)
-	    echo $NODE_NAME > /root/exareme/etc/exareme/name
-        while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
+        while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do
+		    sleep 2
+	    done
+	    #if active workers exist, the system was already running
+        if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then
+           echo $NODE_NAME > /root/exareme/etc/exareme/name
+           curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw > /root/exareme/etc/exareme/master
+           SH=$(cat /root/exareme/etc/exareme/master)
+           IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
+           . ~/exareme/start_worker.sh
+           curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $IP
+           echo $IP | ssh -oStrictHostKeyChecking=no $SH "cat >> ~/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
+           while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
+            sleep 2
+           done
+        else    #the system just created
+           MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
+           curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $NODE_NAME
+           echo $NODE_NAME > /root/exareme/etc/exareme/name
+           while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
+            sleep 2
+               done
+	    fi
+    else #this is the master
+        while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do			#sleep 2
             sleep 2
         done
-    else #this is the master
         /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > etc/exareme/master
+        MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
+        curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_OLIP
         WORKERS_UP=0
-        while [ $WORKERS_UP != $EXA_WORKERS_WAIT ]; do
+        while [ $WORKERS_UP != $EXA_WORKERS_WAIT ]; do		#for test $EXA_WORKERS_WAIT ==1
             sleep 2
             curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_WORKERS_PATH\///g"  \
             | head -n $EXA_WORKERS_WAIT > etc/exareme/workers
                 WORKERS_UP=`cat etc/exareme/workers | wc -l`
                 echo "Waiting for " $((EXA_WORKERS_WAIT-WORKERS_UP)) " more exareme workers..."
         done
-        #curl -X DELETE  $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/?recurse
         for i in `cat etc/exareme/workers` ; do
             ssh -oStrictHostKeyChecking=no $i date
             curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw) <<< $i
@@ -67,10 +78,7 @@ else
         ./bin/exareme-admin.sh --update
         sleep 3
         ./bin/exareme-admin.sh --start
-    fi
 fi
-
-
 
 if [ -e "/tmp/exareme/var/log/exareme-*.log" ]
 then
