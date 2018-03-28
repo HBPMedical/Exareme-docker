@@ -34,9 +34,9 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
         while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do
 		    sleep 2
 	    done
+	    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
 	    #if active workers exist, the system was already running
         if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then
-           echo -n $NODE_NAME > /root/exareme/etc/exareme/name
            curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw > /root/exareme/etc/exareme/master
            SH=$(cat /root/exareme/etc/exareme/master)
            IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
@@ -53,7 +53,6 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
         else    #the system just created
            MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
            curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $NODE_NAME
-           echo -n $NODE_NAME > /root/exareme/etc/exareme/name
            while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
                 sleep 2
            done
@@ -62,6 +61,7 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
         while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do			#sleep 2
             sleep 2
         done
+        echo -n $NODE_NAME > /root/exareme/etc/exareme/name
         /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > /root/exareme/etc/exareme/master
         MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
         curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_OLIP
@@ -81,7 +81,6 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
             sed -i "/$i/c`echo $i$SPACE$WORKER_NAME`" /root/exareme/etc/exareme/workers
             curl -X DELETE $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i
         done
-	    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
         ./bin/exareme-admin.sh --update
         sleep 3
         ./bin/exareme-admin.sh --start
