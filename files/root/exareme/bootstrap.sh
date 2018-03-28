@@ -40,38 +40,45 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
            curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw > /root/exareme/etc/exareme/master
            SH=$(cat /root/exareme/etc/exareme/master)
            IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
-           . ~/exareme/start_worker.sh
+           SPACE=' '
+           . /root/exareme/start_worker.sh
+           if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/{$NODE_NAME}?keys)" = "200" ]; then
+                ssh -oStrictHostKeyChecking=no $SH """sed -i  "/`echo $NODE_NAME`/d" /root/exareme/etc/exareme/workers"""
+           fi
            curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $IP
-           echo $IP | ssh -oStrictHostKeyChecking=no $SH "cat >> ~/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
+           echo $IP$SPACE$NODE_NAME | ssh -oStrictHostKeyChecking=no $SH "cat >> /root/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
            while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
-            sleep 2
+                sleep 2
            done
         else    #the system just created
            MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
            curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $NODE_NAME
            echo -n $NODE_NAME > /root/exareme/etc/exareme/name
            while [ ! -f "/tmp/exareme/var/log/exareme-*.log" ]; do
-            sleep 2
-               done
+                sleep 2
+           done
 	    fi
     else #this is the master
         while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do			#sleep 2
             sleep 2
         done
-        /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > etc/exareme/master
+        /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > /root/exareme/etc/exareme/master
         MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
         curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_OLIP
         WORKERS_UP=0
         while [ $WORKERS_UP != $EXA_WORKERS_WAIT ]; do		#for test $EXA_WORKERS_WAIT ==1
             sleep 2
             curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_WORKERS_PATH\///g"  \
-            | head -n $EXA_WORKERS_WAIT > etc/exareme/workers
+            | head -n $EXA_WORKERS_WAIT > /root/exareme/etc/exareme/workers
                 WORKERS_UP=`cat etc/exareme/workers | wc -l`
                 echo "Waiting for " $((EXA_WORKERS_WAIT-WORKERS_UP)) " more exareme workers..."
         done
-        for i in `cat etc/exareme/workers` ; do
+        SPACE=' '
+        for i in `cat /root/exareme/etc/exareme/workers` ; do
             ssh -oStrictHostKeyChecking=no $i date
             curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw) <<< $i
+            WORKER_NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw)
+            sed -i "/$i/c`echo $i$SPACE$WORKER_NAME`" /root/exareme/etc/exareme/workers
             curl -X DELETE $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i
         done
 	    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
