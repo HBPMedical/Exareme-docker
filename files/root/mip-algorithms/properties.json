@@ -2,7 +2,7 @@
   "algorithms"  : [],
   "endpoints"   : [],
   "local_engine_default" : {
-    "name"        : "postgresraw",
+    "name"        : "postgresrawfilters", 
     "parameters"  : [
 	"<raw_username>"
       	"<raw_password>"

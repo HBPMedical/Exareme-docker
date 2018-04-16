@@ -24,92 +24,90 @@ sed -i "/<raw_db>/c{ \"name\" : \"db\", \"desc\" : \"\", \"value\":\"`echo $RAWD
 mkdir -p  /tmp/demo/db/
 if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
 
-    EXAREME_WORKERS_PATH="available_workers"
-    EXAREME_ACTIVE_WORKERS_PATH="active_workers"
-    EXAREME_MASTER_PATH="master"
+EXAREME_WORKERS_PATH="available_workers"
+EXAREME_ACTIVE_WORKERS_PATH="active_workers"
+EXAREME_MASTER_PATH="master"
 
-    service ssh restart
+service ssh restart
 
-    if [ "$MASTER_FLAG" != "master" ]; then #this is a worker
-        while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do
-		    sleep 2
-	    done
-	    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
-	    #if active workers exist, the system was already running
-        if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then
-           curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw > /root/exareme/etc/exareme/master
-           SH=$(cat /root/exareme/etc/exareme/master)
-           IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
-           SPACE=' '
-           . /root/exareme/start_worker.sh
-           if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/{$NODE_NAME}?keys)" = "200" ]; then
-                ssh -oStrictHostKeyChecking=no $SH """sed -i  "/`echo $NODE_NAME`/d" /root/exareme/etc/exareme/workers"""       #sed -i == delete line from etc/exareme/workers
-           fi
-           curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $IP
-           echo $IP$SPACE$NODE_NAME | ssh -oStrictHostKeyChecking=no $SH "cat >> /root/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
-           NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")
-           while [ ! -f "/tmp/exareme/var/log/exareme-worker.log" ]; do
-                echo "Trying to connect to master with IP "$SH" and NAME "$NAME"."
-                sleep 2
-           done
-           echo -e "\nConnected to master with IP "$SH" and NAME "$NAME"."
-        else    #the system just created
-           MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
-           curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$MY_OLIP <<< $NODE_NAME
-           while [ ! -f "/tmp/exareme/var/log/exareme-worker.log" ] ; do
-                while [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" != "200" ] ; do
-                    sleep 1
-                done
-                SH=$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw)
-                NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")
-                echo "Trying to connect to master with IP "$SH" and NAME "$NAME"..."
-                sleep 2
-           done
-           NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")
-           echo -e "\nConnected to master with IP "$SH" and NAME "$NAME"."
-	    fi
-    else #this is the master
-        while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do			#sleep 2
-            sleep 2
-        done
-        echo -n $NODE_NAME > /root/exareme/etc/exareme/name
-        /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > /root/exareme/etc/exareme/master
-        MY_OLIP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
-        if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_MASTER_PATH}/?keys)" = "200" ]; then
-            if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then
-                for i in `curl -s $CONSULURL/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys | jq -r '.[]' | sed "s/${EXAREME_ACTIVE_WORKERS_PATH}\///g"` ; do
-                    IP=$(curl -s $CONSULURL/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/$i?raw)
-                    SPACE=' '
-                    echo $IP$SPACE$i >> /root/exareme/etc/exareme/workers
-                    ssh -oStrictHostKeyChecking=no $IP date
-                done
-                ./bin/exareme-admin.sh --stop
-                sleep 3
-                ./bin/exareme-admin.sh --start
-            #else mipws oi workers den exoun prolavei na einai active kai einai available?
+while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do	#wait until CONSUL is up and running
+    sleep 2
+done
+
+if [ "$MASTER_FLAG" != "master" ]; then #this is a worker
+    DESC="exareme-worker"
+    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
+    while [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_MASTER_PATH}/?keys)" != "200" ]; do
+        echo "Waiting for master node to be initialized...."
+        sleep 2
+    done
+    curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")?raw > /root/exareme/etc/exareme/master
+    MASTER_NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_MASTER_PATH\///g")
+    SH=$(cat /root/exareme/etc/exareme/master)
+    IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
+    SPACE=' '
+    . /root/exareme/start-worker.sh
+    if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/{$NODE_NAME}?keys)" = "200" ]; then
+        ssh -oStrictHostKeyChecking=no $SH """sed -i  "/`echo $NODE_NAME`/d" /root/exareme/etc/exareme/workers"""       #sed -i == delete line from etc/exareme/workers
+    fi
+    curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $IP
+    echo $IP$SPACE$NODE_NAME | ssh -oStrictHostKeyChecking=no $SH "cat >> /root/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
+    while [ ! -f /tmp/exareme/var/log/$DESC.log ]; do
+        echo "Trying to connect to master with IP "$SH" and NAME "$MASTER_NAME"."
+        sleep 2             #catch log file, match error "unable to connect to master re-run start-worker.sh
+    done
+   # while [ $(cat /tmp/exareme/var/log/$DESC.log | grep *"Worker node started."*) ]; do
+    #  echo "Waiting to establish connection" #sleep ${SLEEP_TIME}
+    #done
+    tail -f /tmp/exareme/var/log/$DESC.log | while read LOGLINE
+    do
+        [[ "${LOGLINE}" == *"Worker node started."* ]] && pkill -P $$ tail
+        echo " Waiting to establish connection with master's IP "$SH" and name "$MASTER_NAME".."
+        sleep 2
+        if [[ "${LOGLINE}" == *"Cannot connect to"* ]]; then
+            echo "Can not establish connection with master node. Is master node running? Terminating worker node "$NODE_NAME"..."
+            if [ -f /tmp/exareme/var/run/*.pid ]; then
+                kill -9 $( cat /tmp/exareme/var/run/*.pid)
+                rm /tmp/exareme/var/run/*.pid
+                echo "Stopped."
+            else
+                echo "Already stopped, no action taken."
             fi
-        else
-            curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_OLIP
-            WORKERS_UP=0
-            while [ $WORKERS_UP != $EXA_WORKERS_WAIT ]; do		#for test $EXA_WORKERS_WAIT ==1
-                sleep 2
-                curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/?keys | jq -r '.[]' | sed "s/$EXAREME_WORKERS_PATH\///g"  \
-                | head -n $EXA_WORKERS_WAIT > /root/exareme/etc/exareme/workers
-                    WORKERS_UP=`cat etc/exareme/workers | wc -l`
-                    echo "Waiting for " $((EXA_WORKERS_WAIT-WORKERS_UP)) " more exareme workers..."
-            done
-            SPACE=' '
-            for i in `cat /root/exareme/etc/exareme/workers` ; do
-                ssh -oStrictHostKeyChecking=no $i date
-                curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw) <<< $i
-                WORKER_NAME=$(curl -s $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i?raw)
-                sed -i "/$i/c`echo $i$SPACE$WORKER_NAME`" /root/exareme/etc/exareme/workers
-                curl -X DELETE $CONSULURL/v1/kv/$EXAREME_WORKERS_PATH/$i
-            done
-            ./bin/exareme-admin.sh --update
-            sleep 3
-            ./bin/exareme-admin.sh --start
+            break
         fi
+    done
+    echo -e "\nConnected to master with IP "$SH" and name "$MASTER_NAME"."
+
+#this is the master
+else
+    DESC="exareme-master"
+    echo -n $NODE_NAME > /root/exareme/etc/exareme/name
+    /sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1 > /root/exareme/etc/exareme/master
+    MY_IP=$(/sbin/ifconfig $1 | grep "inet " | awk -F: '{print $2}' | grep '10.20' | awk '{print $1;}' | head -n 1)
+    #Master re-booted
+    if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_MASTER_PATH}/?keys)" = "200" ]; then
+        if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then
+            for i in `curl -s $CONSULURL/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys | jq -r '.[]' | sed "s/${EXAREME_ACTIVE_WORKERS_PATH}\///g"` ; do
+                IP=$(curl -s $CONSULURL/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/$i?raw)
+                SPACE=' '
+                echo $IP$SPACE$i >> /root/exareme/etc/exareme/workers
+                ssh -oStrictHostKeyChecking=no $IP date
+            done
+            ./bin/exareme-admin.sh --stop
+            ./bin/exareme-admin.sh --update
+            sleep 2
+            ./bin/exareme-admin.sh --start
+        #else mipws oi workers den exoun prolavei na einai active kai einai available?
+        fi
+    #Master just created
+    else
+        ./bin/exareme-admin.sh --start
+        echo "Initializing master node with IP "$MY_IP" and NAME " $NODE_NAME"..."
+        while [ ! -f /tmp/exareme/var/log/$DESC.log ]; do
+            echo "Initializing master node with IP "$MY_IP" and NAME " $NODE_NAME"..."
+        done
+    fi
+    curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_IP
 fi
 
 if [ -e "/tmp/exareme/var/log/exareme-*.log" ]
@@ -119,4 +117,3 @@ else
     sleep 2
     tail -f /tmp/exareme/var/log/exareme-*.log
 fi
-
