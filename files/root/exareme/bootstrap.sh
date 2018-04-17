@@ -48,7 +48,8 @@ if [ "$MASTER_FLAG" != "master" ]; then #this is a worker
     SPACE=' '
     . /root/exareme/start-worker.sh
     if [ "$(curl -o -i -s -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/{$NODE_NAME}?keys)" = "200" ]; then
-        ssh -oStrictHostKeyChecking=no $SH """sed -i  "/`echo $NODE_NAME`/d" /root/exareme/etc/exareme/workers"""       #sed -i == delete line from etc/exareme/workers
+        ssh -oStrictHostKeyChecking=no $SH """sed -i  "/`echo $NODE_NAME`/d" /root/exareme/etc/exareme/workers; curl localhost:9091/remove/worker?IP=$IP"""       #sed -i == delete line from etc/exareme/worker
+        curl -X DELETE $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME
     fi
     curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $IP
     echo $IP$SPACE$NODE_NAME | ssh -oStrictHostKeyChecking=no $SH "cat >> /root/exareme/etc/exareme/workers"     #write workers's IP into master's worker file
