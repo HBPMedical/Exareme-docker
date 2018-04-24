@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ -z ${NODE_NAME} ]; then echo "NODE_NAME is unset";exit;  fi
 if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
 
