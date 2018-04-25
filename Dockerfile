@@ -100,6 +100,6 @@ EXPOSE 22
 ENV USER=root
 WORKDIR /root/exareme
 
-ENTRYPOINT /bin/bash bootstrap.sh
+CMD ["/bin/bash","bootstrap.sh"]
 # While debugging
 #ENTRYPOINT /bin/sh
