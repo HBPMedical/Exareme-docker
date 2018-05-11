@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Setup signal handlers
-trap term_handler SIGTERM           #SIGKILL
+trap term_handler SIGTERM SIGKILL
 
 # SIGTERM-handler this funciton will be executed when the container receives the SIGTERM signal (when stopping)
 term_handler () {
