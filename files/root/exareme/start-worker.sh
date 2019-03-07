@@ -11,14 +11,14 @@ EXAREME_ADMIN_JMX_PORT=10000
         EXAREME_ADMIN_OPTS="${EXAREME_JAVA_OPTS}  \
                 -Djava.rmi.server.codebase=file:$EXAREME_HOME/lib/exareme/                      \
                             -Djava.security.policy=$EXAREME_HOME/etc/exareme/art.policy         \
-                            -Djava.rmi.server.hostname=$IP                      \
+                            -Djava.rmi.server.hostname=$MY_IP                      \
                             -Dcom.sun.management.jmxremote.port=$EXAREME_ADMIN_JMX_PORT         \
                             -Dcom.sun.management.jmxremote.authenticate=false                   \
                             -Dcom.sun.management.jmxremote.ssl=false                            \
                             -Djava.security.egd=file:///dev/urandom "
 DESC="exareme-worker"
             EXAREME_ADMIN_CLASS=$EXAREME_ADMIN_WORKER_CLASS
-            EXAREME_ADMIN_CLASS_ARGS=$(cat /root/exareme/etc/exareme/master)
+            EXAREME_ADMIN_CLASS_ARGS=$MASTER_IP
 echo "BB"
         echo $EXAREME_ADMIN_CLASS_PATH
         echo $EXAREME_JAVA
