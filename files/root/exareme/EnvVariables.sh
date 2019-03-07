@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-echo "I am inside Env Variables"
-
 if [ -z ${RAWUSERNAME} ]; then echo "RAWUSERNAME is unset"; exit;  fi
 if [ -z ${RAWPASSWORD} ]; then echo "RAWPASSWORD is unset";exit;  fi
 if [ -z ${RAWHOST} ]; then echo "RAWHOST is unset";exit;  fi
