@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 EXAREME_HOME="$HOME/exareme"
-. $EXAREME_HOME/etc/exareme/exareme-env.sh  &> /dev/null
+. ./exareme-env.sh  &> /dev/null
 mkdir -p /tmp/demo/db
 source /etc/profile
 EXAREME_ADMIN_JMX_PORT=10000
