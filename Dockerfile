@@ -78,7 +78,7 @@ RUN apk add --update py-psycopg2 py-pip ca-certificates gcc musl-dev python-dev 
     rm -rf /tmp/* /var/cache/apk/*
 
 # Runtime dependencies for Exareme
-RUN apk add --update rsync curl bash jq python py-requests lapack && \
+RUN apk add --update rsync curl bash jq python py-requests lapack --no-cache procps && \
     rm -rf /tmp/* /var/cache/apk/*
 
 
