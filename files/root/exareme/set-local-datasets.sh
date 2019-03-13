@@ -6,7 +6,7 @@ if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
 MADIS="/root/exareme/lib/madis/src/mterm.py"
 LOCAL_DATASET="/root/exareme/datasets/datasets.csv"
 
-DATASETS=$(echo "select distinct __val from (file header:t file:$LOCAL_DATASET) where __colname = 'dataset';" | $MADIS | \
+DATASETS=$(echo "select  distinct val from ($RAW_UDF dataset);" | $MADIS | \
 	 sed '1d ; $d' | jq .[]  | sed 's/^\"//g ; s/\"$//g' | printf %s "$(cat)"| jq -R -c -s 'split("\n")')
 
 
