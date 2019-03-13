@@ -1,5 +1,5 @@
 FROM alpine:3.6
-MAINTAINER Yannis Chronis <i.chronis@di.uoa.gr>
+MAINTAINER Sofia Karvouni <karvoun@di.uoa.gr>
 
 # Here we install GNU libc (aka glibc) and set C.UTF-8 locale as default.
 RUN ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
@@ -78,9 +78,9 @@ RUN apk add --update py-psycopg2 py-pip ca-certificates gcc musl-dev python-dev 
     rm -rf /tmp/* /var/cache/apk/*
 
 # Runtime dependencies for Exareme
-RUN apk add --update rsync curl openssh bash jq python py-requests lapack && \
+RUN apk add --update rsync curl bash jq python py-requests lapack --no-cache procps && \
     rm -rf /tmp/* /var/cache/apk/*
-ADD files/service /bin/service
+
 
 # Add Exareme
 ADD src/exareme/exareme-distribution/target/exareme /root/exareme
