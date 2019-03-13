@@ -18,7 +18,7 @@ echo "EXAREME HOME DIR : $EXAREME_HOME";
 #load environmental variables like JAVA, python
 . ./exareme-env.sh  &> /dev/null
 
-#maybe siply pash MASTER_IP from bootstrap
+#maybe simply pass MASTER_IP from bootstrap
 EXAREME_MASTER=`/sbin/ifconfig | grep "inet " | awk -F: '{print $2}'  | grep '10.20' | awk '{print $1;}' | head -n 1`;	#TODO 10.20 always?
 echo "EXAREME MASTER HOST : $EXAREME_MASTER";
 
@@ -38,7 +38,6 @@ function usage(){
     OPTIONS [OPTIONS_PARAMETERS]
 
         --start                         - start daemons
-        --stop                          - stop daemons
         --kill                          - kill all java and python process
         --status                        - print daemons status
         --console                       - opens a madis console with exa* operators available.
@@ -46,7 +45,7 @@ EOF
 }
 
 TEMP=`getopt --options h \
-             --long start,stop,status,kill,console,help \
+             --long start,status,kill,console,help \
              -n $(basename "$0") -- "$@"`
 
 if [ $? != 0 ]; then echo "Terminating..." >&2; exit 1; fi
@@ -56,7 +55,7 @@ EXAREME_ADMIN="" ;
 
 while true; do
    case "$1" in
-        --start|--stop|--status|--kill)
+        --start|--console|--status|--kill)
             EXAREME_ADMIN="${1:2}"
             ;;
         -h|--help)
@@ -92,7 +91,6 @@ function start_exareme(){               #starts exareme daemon
     EXAREME_ADMIN_JMX_PORT=10000
     EXAREME_ADMIN_CLASS_PATH="$EXAREME_HOME/lib/exareme/*:$EXAREME_HOME/lib/exareme/external/*"
     EXAREME_ADMIN_MASTER_CLASS="madgik.exareme.master.admin.StartMaster"
-    EXAREME_ADMIN_WORKER_CLASS="madgik.exareme.worker.admin.StartWorker"
     EXAREME_ADMIN_OPTS="${EXAREME_JAVA_OPTS}  \
        -Djava.rmi.server.codebase=file:$EXAREME_HOME/lib/exareme/                      \
        -Djava.security.policy=$EXAREME_HOME/etc/exareme/art.policy         \
@@ -115,13 +113,13 @@ function start_exareme(){               #starts exareme daemon
 
 }
 
-function kill_exareme(){              #kill exareme daemon. ATTENTION that will kill every java and python processes you have
+function kill_exareme(){              #kill exareme daemon. Be aware that kill_exareme will kill every java and python processes you have
     echo "killing all java and python ..."
     killall java python
     exit 0
 }
 
-function status_exareme(){          #status of EXAREME
+function status_exareme(){            #status of EXAREME
     if [ -e /tmp/exareme/var/run/*.pid ]; then
         ps -f --pid $(cat /tmp/exareme/var/run/*.pid) | sed 1d
     else
