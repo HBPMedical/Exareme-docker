@@ -100,8 +100,8 @@ else
     #Master re-booted
     if [ "$(curl -s -o  /dev/null -i -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_MASTER_PATH}/?keys)" = "200" ]; then
         if [ "$(curl -s -o  /dev/null -i -w "%{http_code}\n" ${CONSULURL}/v1/kv/${EXAREME_ACTIVE_WORKERS_PATH}/?keys)" = "200" ]; then  #workers connected to him
-            echo ""
-            #TODO
+            echo "" #empty echo for if-then-else consistency
+            #TODO check what if master restarts with different IP while workers are already connected to the master's registry with previous IP
         else
             ./exareme-admin.sh --start
             echo "Master node with IP "$MY_IP" and name " $NODE_NAME" trying to re-boot..."
