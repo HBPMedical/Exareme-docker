@@ -52,7 +52,10 @@ fi
 exit 0
 }
 
-./env-variables.sh
+if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
+if [ -z ${NODE_NAME} ]; then echo "NODE_NAME is unset";exit;  fi
+if [ -z ${DOCKER_DATASETS_FOLDER} ]; then echo "DOCKER_DATASETS_FOLDER is unset"; exit; fi
+
 mkdir -p  /tmp/demo/db/
 
 while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do	#wait until CONSUL is up and running
