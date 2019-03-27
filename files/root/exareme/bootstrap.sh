@@ -80,7 +80,6 @@ if [ "$MASTER_FLAG" != "master" ]; then         #this is a worker
     curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $MY_IP
     while [ ! -f /tmp/exareme/var/log/$DESC.log ]; do
         echo "Trying to connect worker with IP "$MY_IP" and name "$NODE_NAME" to master with IP "$MASTER_IP" and name "$MASTER_NAME"."
-        sleep 2
     done
     tail -f /tmp/exareme/var/log/$DESC.log | while read LOGLINE
     do
