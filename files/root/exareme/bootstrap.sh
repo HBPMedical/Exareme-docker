@@ -52,7 +52,10 @@ fi
 exit 0
 }
 
-./env-variables.sh
+if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
+if [ -z ${NODE_NAME} ]; then echo "NODE_NAME is unset";exit;  fi
+if [ -z ${DOCKER_DATASETS_FOLDER} ]; then echo "DOCKER_DATASETS_FOLDER is unset"; exit; fi
+
 mkdir -p  /tmp/demo/db/
 
 while [ "$(curl -s ${CONSULURL}/v1/health/state/passing | jq -r '.[].Status')" != "passing" ]; do	#wait until CONSUL is up and running
@@ -77,7 +80,6 @@ if [ "$MASTER_FLAG" != "master" ]; then         #this is a worker
     curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_ACTIVE_WORKERS_PATH/$NODE_NAME <<< $MY_IP
     while [ ! -f /tmp/exareme/var/log/$DESC.log ]; do
         echo "Trying to connect worker with IP "$MY_IP" and name "$NODE_NAME" to master with IP "$MASTER_IP" and name "$MASTER_NAME"."
-        sleep 2
     done
     tail -f /tmp/exareme/var/log/$DESC.log | while read LOGLINE
     do
