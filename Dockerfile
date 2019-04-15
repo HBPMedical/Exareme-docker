@@ -83,7 +83,7 @@ RUN apk add --update rsync curl bash jq python py-requests lapack --no-cache pro
 
 
 # Add Exareme
-ADD src/exareme/exareme-distribution/target/exareme /root/exareme
+ADD src/exareme /root/exareme
 
 # Add the algorithms
 ADD src/mip-algorithms /root/mip-algorithms
