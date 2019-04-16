@@ -55,6 +55,7 @@ exit 0
 if [ -z ${CONSULURL} ]; then echo "CONSULURL is unset"; exit; fi
 if [ -z ${NODE_NAME} ]; then echo "NODE_NAME is unset";exit;  fi
 if [ -z ${DOCKER_DATASETS_FOLDER} ]; then echo "DOCKER_DATASETS_FOLDER is unset"; exit; fi
+if [ -z ${DOCKER_METADATA_FOLDER} ]; then echo "DOCKER_METADATA_FOLDER is unset"; exit; fi
 
 mkdir -p  /tmp/demo/db/
 
@@ -121,6 +122,10 @@ else
     fi
     curl -X PUT -d @- $CONSULURL/v1/kv/$EXAREME_MASTER_PATH/$NODE_NAME <<< $MY_IP
 fi
+
+# Both Master and Worker should transform the csv to an sqlite db file
+echo "Parsing the csv file in " $DOCKER_METADATA_FOLDER " to a db file. "
+python ./convert-csv-dataset-to-db.py -csvFilePath $DOCKER_DATASETS_FOLDER/datasets.csv -variablesMetadataPath $DOCKER_METADATA_FOLDER/variablesMetadata.json -outputDBPath $DOCKER_METADATA_FOLDER/datasets.db
 
 # Running something in foreground, otherwise the container will stop
 while true
