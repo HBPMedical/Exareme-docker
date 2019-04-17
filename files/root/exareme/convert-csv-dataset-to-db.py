@@ -15,19 +15,23 @@ def getParameters(argv):
 def createMetadataDictionary(variablesMetadataPath):
     variablesMetadata = open(variablesMetadataPath)
     metadataJSON = json.load(variablesMetadata)
-    variables = metadataJSON['variables']
-    dict = {}
-    for variable in variables:
-        if variable['code'] == 'neurodegenerativescategories':
-            dict['neurogenerativescategories'] = variable['sql_type']
-        else:
-            dict[variable['code']] = variable['sql_type']
-    dict['brainstem'] = 'real'
-    dict['tiv'] = 'text'
-    dict['rid'] = 'integer'
-    dict['row_id'] = 'text'
-    dict['subjectcode'] = 'text'
-    return dict
+
+    metadataDictionary = {}
+    metadataDictionary['rid'] = 'integer'
+    metadataDictionary['row_id'] = 'text'
+    metadataDictionary['subjectcode'] = 'text'
+    metadataDictionary = addGroupVariablesToDictionary(metadataJSON,metadataDictionary)
+    return metadataDictionary
+
+def addGroupVariablesToDictionary(groupMetadata,metadataDictionary):
+    if 'variables' in groupMetadata:
+        for variable in groupMetadata['variables']:
+            metadataDictionary[variable['code']] = variable['sql_type']
+    if 'groups' in groupMetadata:
+        for group in groupMetadata['groups']:
+            metadataDictionary = addGroupVariablesToDictionary(group,metadataDictionary)
+    return metadataDictionary
+
 
 # Read the parameters
 parameters = getParameters(sys.argv[1:])
